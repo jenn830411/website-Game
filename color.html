@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ColorMind - Color Match Game</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: #f4f4f4;
+    padding: 20px;
+  }
+  h1 { color: #333; }
+  .color-box {
+    width: 150px;
+    height: 150px;
+    margin: 20px auto;
+    border-radius: 12px;
+    border: 3px solid #333;
+  }
+  .options button {
+    margin: 10px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  .feedback {
+    margin-top: 20px;
+    font-size: 18px;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+<h1>🎨 ColorMind: Color Match Game</h1>
+<div class="color-box" id="colorBox"></div>
+
+<div class="options">
+  <button id="option1"></button>
+  <button id="option2"></button>
+  <button id="option3"></button>
+</div>
+
+<div class="feedback" id="feedback"></div>
+
+<audio id="audio"></audio>
+
+<script>
+const colors = [
+  {name: "Red", hex:"#FF4C4C", psychology: "Red increases alertness and excitement."},
+  {name: "Blue", hex:"#4C9AFF", psychology: "Blue is calming and promotes focus."},
+  {name: "Yellow", hex:"#FFD93D", psychology: "Yellow evokes happiness and creativity."},
+  {name: "Green", hex:"#4CFF88", psychology: "Green symbolizes balance and harmony."},
+  {name: "Purple", hex:"#B14CFF", psychology: "Purple stimulates imagination and luxury feeling."},
+];
+
+let currentColor;
+
+function shuffle(array) {
+  return array.sort(() => Math.random() - 0.5);
+}
+
+function newGame() {
+  const colorBox = document.getElementById("colorBox");
+  const feedback = document.getElementById("feedback");
+  feedback.textContent = "";
+  
+  currentColor = colors[Math.floor(Math.random() * colors.length)];
+  colorBox.style.backgroundColor = currentColor.hex;
+
+  // Prepare options
+  let options = [currentColor.name];
+  while (options.length < 3) {
+    let randomColor = colors[Math.floor(Math.random() * colors.length)].name;
+    if (!options.includes(randomColor)) options.push(randomColor);
+  }
+
+  options = shuffle(options);
+
+  document.getElementById("option1").textContent = options[0];
+  document.getElementById("option2").textContent = options[1];
+  document.getElementById("option3").textContent = options[2];
+
+  // Play color pronunciation
+  let audio = document.getElementById("audio");
+  audio.src = `https://ssl.gstatic.com/dictionary/static/sounds/oxford/${currentColor.name.toLowerCase()}--_gb_1.mp3`;
+  audio.play();
+}
+
+function checkAnswer(btn) {
+  const feedback = document.getElementById("feedback");
+  if (btn.textContent === currentColor.name) {
+    feedback.textContent = "✅ Correct! " + currentColor.psychology;
+    feedback.style.color = "#4CAF50";
+  } else {
+    feedback.textContent = "❌ Try again!";
+    feedback.style.color = "#FF0000";
+  }
+}
+
+// Attach events
+document.getElementById("option1").onclick = function() { checkAnswer(this); newGame(); };
+document.getElementById("option2").onclick = function() { checkAnswer(this); newGame(); };
+document.getElementById("option3").onclick = function() { checkAnswer(this); newGame(); };
+
+// Start the first game
+newGame();
+</script>
+
+</body>
+</html>
