@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>回收英文小遊戲 ♻️</title>
+<style>
+body {font-family: Arial, sans-serif; max-width:900px; margin:20px auto; padding:10px; background:#f7fff7;}
+h1{ text-align:center;}
+.container{display:grid; grid-template-columns: 1fr; gap:18px; }
+.card, .game, .quiz{background:#fff; padding:12px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.1);}
+#cardBig{font-size:48px; text-align:center;}
+.btn{padding:8px 12px; margin:6px; border-radius:8px; cursor:pointer; border: none; background:#4CAF50; color:white;}
+.bins{display:flex; gap:10px; justify-content:space-around; margin-top:10px;}
+.bin{flex:1; padding:10px; min-height:120px; border:2px dashed #ccc; border-radius:10px; text-align:center;}
+.item{display:inline-block; padding:8px 10px; margin:6px; background:#fff;border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); cursor:grab;}
+.correct{border-color:green;}
+.wrong{border-color:red;}
+.score{font-weight:bold;}
+.choices{display:flex; gap:8px; flex-wrap:wrap;}
+.choice{padding:8px 10px; border-radius:8px; border:1px solid #ddd; cursor:pointer;}
+</style>
+</head>
+<body>
+<h1>回收英文小遊戲 ♻️</h1>
+<div class="container">
+<div class="card">
+<h2>單字卡（Flashcard）</h2>
+<div id="cardBig">📄</div>
+<p id="wordEn" style="text-align:center;font-size:24px;">paper</p>
+<p id="wordCh" style="text-align:center;color:#555;">紙</p>
+<div style="text-align:center;">
+<button class="btn" id="prev">上一張</button>
+<button class="btn" id="speak">發音</button>
+<button class="btn" id="next">下一張</button>
+</div>
+</div>
+
+<div class="game">
+<h2>分類遊戲（把物品拖到正確的垃圾桶）</h2>
+<p>把下面的東西拖到對的桶子裡（Recycle 回收 / Compost 可堆肥 / Trash 一般垃圾）</p>
+<div id="itemsArea"></div>
+<div class="bins">
+<div class="bin" data-bin="recycle">♻️ Recycle</div>
+<div class="bin" data-bin="compost">🍂 Compost</div>
+<div class="bin" data-bin="trash">🗑️ Trash</div>
+</div>
+<p>得分: <span id="score" class="score">0</span></p>
+<button class="btn" id="resetGame">重置遊戲</button>
+</div>
+
+<div class="quiz">
+<h2>小測驗（選出正確中文）</h2>
+<p id="question" style="font-size:20px;">Which one?</p>
+<div id="choices" class="choices"></div>
+<p id="quizResult"></p>
+<button class="btn" id="nextQ">下一題</button>
+</div>
+
+</div>
+
+<script>
+// 單字表 (10 個回收相關單字)
+const vocab = [
+{en:"paper", ch:"紙", emoji:"📄", bin:"recycle"},
+{en:"plastic", ch:"塑膠", emoji:"🧴", bin:"recycle"},
+{en:"glass", ch:"玻璃", emoji:"🍾", bin:"recycle"},
+{en:"metal", ch:"金屬", emoji:"🔩", bin:"recycle"},
+{en:"can", ch:"罐子", emoji:"🥫", bin:"recycle"},
+{en:"bottle", ch:"瓶子", emoji:"🍶", bin:"recycle"},
+{en:"cardboard", ch:"紙盒", emoji:"📦", bin:"recycle"},
+{en:"compost", ch:"可堆肥", emoji:"🍌", bin:"compost"},
+{en:"trash", ch:"一般垃圾", emoji:"🗑️", bin:"trash"},
+{en:"reuse", ch:"重複使用", emoji:"🔁", bin:"recycle"},
+];
+
+let idx = 0;
+const cardBig = document.getElementById('cardBig');
+const wordEn = document.getElementById('wordEn');
+const wordCh = document.getElementById('wordCh');
+function showCard(i){
+  const w = vocab[i];
+  cardBig.textContent = w.emoji;
+  wordEn.textContent = w.en;
+  wordCh.textContent = w.ch;
+}
+document.getElementById('next').addEventListener('click', ()=>{
+ idx = (idx+1) % vocab.length;
+ showCard(idx);
+});
+document.getElementById('prev').addEventListener('click', ()=>{
+ idx = (idx-1 + vocab.length) % vocab.length;
+ showCard(idx);
+});
+document.getElementById('speak').addEventListener('click', ()=> speak(vocab[idx].en));
+
+function speak(text){
+  if('speechSynthesis' in window){
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  } else {
+    alert('你的瀏覽器不支援發音功能');
+  }
+}
+showCard(0);
+
+// 分類遊戲
+const itemsArea = document.getElementById('itemsArea');
+const bins = document.querySelectorAll('.bin');
+const scoreEl = document.getElementById('score');
+let score = 0;
+
+function shuffle(a){ return a.sort(()=>Math.random()-0.5); }
+function createItems(){
+  itemsArea.innerHTML = '';
+  const list = shuffle([...vocab]);
+  list.forEach((w, i)=>{
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.draggable = true;
+    div.id = 'item-'+i;
+    div.textContent = w.emoji + ' ' + w.en;
+    div.dataset.bin = w.bin;
+    div.addEventListener('dragstart', (e)=> {
+      e.dataTransfer.setData('text/plain', div.id);
+    });
+    itemsArea.appendChild(div);
+  });
+}
+bins.forEach(bin=>{
+  bin.addEventListener('dragover', e=> e.preventDefault());
+  bin.addEventListener('drop', function(e){
+    e.preventDefault();
+    const id = e.dataTransfer.getData('text/plain');
+    const item = document.getElementById(id);
+    if(!item) return;
+    const targetBin = this.dataset.bin;
+    if(item.dataset.bin === targetBin){
+      this.appendChild(item);
+      item.draggable = false;
+      item.style.opacity = '0.7';
+      score += 10;
+      scoreEl.textContent = score;
+      this.classList.add('correct');
+      setTimeout(()=> this.classList.remove('correct'), 600);
+    } else {
+      // wrong
+      this.classList.add('wrong');
+      score -= 2;
+      if(score < 0) score = 0;
+      scoreEl.textContent = score;
+      setTimeout(()=> this.classList.remove('wrong'), 600);
+    }
+  });
+});
+document.getElementById('resetGame').addEventListener('click', ()=>{
+  score = 0;
+  scoreEl.textContent = score;
+  createItems();
+});
+
+createItems();
+
+// 小測驗
+const questionEl = document.getElementById('question');
+const choicesEl = document.getElementById('choices');
+const quizResult = document.getElementById('quizResult');
+
+function newQuestion(){
+  quizResult.textContent = '';
+  const q = vocab[Math.floor(Math.random()*vocab.length)];
+  questionEl.textContent = 'What is the Chinese for "' + q.en + '"?';
+  // create three choices
+  const choices = [q.ch];
+  while(choices.length < 3){
+    const pick = vocab[Math.floor(Math.random()*vocab.length)].ch;
+    if(!choices.includes(pick)) choices.push(pick);
+  }
+  shuffle(choices);
+  choicesEl.innerHTML = '';
+  choices.forEach(c=>{
+    const b = document.createElement('button');
+    b.className = 'choice';
+    b.textContent = c;
+    b.addEventListener('click', ()=>{
+      if(c === q.ch){
+        quizResult.textContent = '答對了！太棒了！✅';
+      } else {
+        quizResult.textContent = '答錯了，再試一次。';
+      }
+    });
+    choicesEl.appendChild(b);
+  });
+}
+document.getElementById('nextQ').addEventListener('click', newQuestion);
+newQuestion();
+
+</script>
+</body>
+</html>
